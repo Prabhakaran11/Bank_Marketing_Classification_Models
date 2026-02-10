@@ -2,8 +2,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
-pd.read_csv("data/bank.csv", sep=';').head()
-
 def load_and_preprocess_data(csv_path):
     """
     Loads the Bank Marketing dataset and performs preprocessing:
