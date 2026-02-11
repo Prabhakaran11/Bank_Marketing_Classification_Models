@@ -11,9 +11,9 @@ from sklearn.metrics import (
 from model.preprocessing import load_and_preprocess_data, split_data
 
 
-def train_and_evaluate_naive_bayes(csv_path):
+def train_and_evaluate_naive_bayes(df):
     # Load and preprocess data
-    X, y = load_and_preprocess_data(csv_path)
+    X, y = load_and_preprocess_data(df)
     X_train, X_test, y_train, y_test = split_data(X, y)
 
     # Train Gaussian Naive Bayes
