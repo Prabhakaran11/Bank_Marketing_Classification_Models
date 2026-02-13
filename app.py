@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score, precision_score, recall_score, f1_score
 
 # Import all model functions
 from model.logistic_regression import train_and_evaluate_logistic_regression
@@ -12,83 +12,350 @@ from model.naive_bayes import train_and_evaluate_naive_bayes
 from model.random_forest import train_and_evaluate_random_forest
 from model.xgboost import train_and_evaluate_xgboost
 
-
-st.set_page_config(page_title="Bank Marketing ML Models", layout="wide")
-
-st.title("📊 Bank Marketing Classification - Model Comparison")
-st.write("Compare multiple machine learning models for predicting term deposit subscription.")
-
-# -------------------------------
-# Model Selection
-# -------------------------------
-
-model_option = st.selectbox(
-    "Select a Machine Learning Model",
-    [
-        "Logistic Regression",
-        "Decision Tree",
-        "KNN",
-        "Naive Bayes",
-        "Random Forest",
-        "XGBoost"
-    ]
+# Page configuration
+st.set_page_config(
+    page_title="Bank Marketing ML Predictor",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# -------------------------------
-# Dataset Upload
-# -------------------------------
+# Custom CSS for better styling
+st.markdown("""
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f77b4;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        font-size: 1.1rem;
+        color: #666;
+        margin-bottom: 2rem;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 8px;
+        height: 3rem;
+        font-weight: 600;
+    }
+    .upload-section {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        border-radius: 10px;
+        border: 2px dashed #ddd;
+        margin: 1rem 0;
+    }
+    .model-info {
+        background-color: #e7f3ff;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #1f77b4;
+        margin: 1rem 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload Bank Marketing CSV file", type=["csv"])
+# Header Section
+st.markdown('<h1 class="main-header">🏦 Bank Marketing ML Predictor</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Train and evaluate machine learning models to predict term deposit subscriptions</p>', unsafe_allow_html=True)
+
+# Sidebar
+with st.sidebar:
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #1f77b4 0%, #0d47a1 100%); 
+                padding: 2rem; 
+                border-radius: 10px; 
+                text-align: center;
+                margin-bottom: 1rem;'>
+        <h2 style='color: white; margin: 0;'>🏦 ML Platform</h2>
+        <p style='color: #e3f2fd; margin: 0.5rem 0 0 0;'>Bank Marketing Predictor</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("### 🎯 Model Configuration")
+    
+    model_option = st.selectbox(
+        "Select ML Model",
+        [
+            "Logistic Regression",
+            "Decision Tree",
+            "KNN",
+            "Naive Bayes",
+            "Random Forest",
+            "XGBoost"
+        ],
+        help="Choose the machine learning algorithm for prediction"
+    )
+    
+    st.markdown("---")
+    
+    # Model descriptions
+    model_descriptions = {
+        "Logistic Regression": "📊 Linear model for binary classification. Fast and interpretable.",
+        "Decision Tree": "🌳 Tree-based model that learns decision rules. Easy to visualize.",
+        "KNN": "👥 Instance-based learning using nearest neighbors.",
+        "Naive Bayes": "📈 Probabilistic classifier based on Bayes' theorem.",
+        "Random Forest": "🌲 Ensemble of decision trees. High accuracy and robust.",
+        "XGBoost": "⚡ Gradient boosting algorithm. State-of-the-art performance."
+    }
+    
+    st.info(model_descriptions[model_option])
+    
+    st.markdown("---")
+    st.markdown("### 📚 About")
+    st.markdown("""
+    This application uses machine learning to predict whether a client will subscribe to a term deposit based on marketing campaign data.
+    
+    **Dataset Features:**
+    - Demographics
+    - Campaign information
+    - Economic indicators
+    """)
+
+# Main Content Area
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.markdown("### 📥 Sample Dataset")
+    st.markdown("Download a sample test dataset to try the prediction functionality.")
+
+with col2:
+    with open("data/bank.csv", "rb") as file:
+        st.download_button(
+            label="⬇️ Download Sample CSV",
+            data=file,
+            file_name="bank_test_sample.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+st.markdown("---")
+
+# Model Training Section
+with st.spinner(f'🔄 Training {model_option} model on full dataset...'):
+    df_full = pd.read_csv("data/bank-full.csv", sep=';')
+    
+    if model_option == "Logistic Regression":
+        model, _ = train_and_evaluate_logistic_regression(df_full)
+    elif model_option == "Decision Tree":
+        model, _ = train_and_evaluate_decision_tree(df_full)
+    elif model_option == "KNN":
+        model, _ = train_and_evaluate_knn(df_full)
+    elif model_option == "Naive Bayes":
+        model, _ = train_and_evaluate_naive_bayes(df_full)
+    elif model_option == "Random Forest":
+        model, _ = train_and_evaluate_random_forest(df_full)
+    elif model_option == "XGBoost":
+        model, _ = train_and_evaluate_xgboost(df_full)
+
+st.success(f'✅ {model_option} model trained successfully!')
+
+# Upload and Prediction Section
+st.markdown("### 🔮 Make Predictions")
+
+uploaded_file = st.file_uploader(
+    "Upload your test dataset (CSV format)",
+    type=["csv"],
+    help="Upload a CSV file with the same format as the sample dataset"
+)
 
 if uploaded_file is not None:
-
-    # Read the file ONCE
-    df = pd.read_csv(uploaded_file, sep=';')
-
-    # Pass DataFrame to model functions
-    if model_option == "Logistic Regression":
-        model, metrics = train_and_evaluate_logistic_regression(df)
-
-    elif model_option == "Decision Tree":
-        model, metrics = train_and_evaluate_decision_tree(df)
-
-    elif model_option == "KNN":
-        model, metrics = train_and_evaluate_knn(df)
-
-    elif model_option == "Naive Bayes":
-        model, metrics = train_and_evaluate_naive_bayes(df)
-
-    elif model_option == "Random Forest":
-        model, metrics = train_and_evaluate_random_forest(df)
-
-    elif model_option == "XGBoost":
-        model, metrics = train_and_evaluate_xgboost(df)
-
-    st.subheader("📈 Evaluation Metrics")
-
-    metrics_df = pd.DataFrame(metrics.items(), columns=["Metric", "Value"])
-    st.dataframe(metrics_df)
-
-    from model.preprocessing import load_and_preprocess_data, split_data
-
-    X, y = load_and_preprocess_data(df)
-    X_train, X_test, y_train, y_test = split_data(X, y)
-
-    y_pred = model.predict(X_test)
-
-    st.subheader("📉 Confusion Matrix")
-
-    cm = confusion_matrix(y_test, y_pred)
-
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-
-    st.pyplot(fig)
-
-    st.subheader("📄 Classification Report")
-    st.text(classification_report(y_test, y_pred))
+    try:
+        # Load and process test data
+        df_test = pd.read_csv(uploaded_file, sep=';')
+        
+        # Display dataset preview
+        with st.expander("📊 Preview Uploaded Dataset", expanded=False):
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Total Records", len(df_test))
+            col2.metric("Features", len(df_test.columns))
+            col3.metric("Memory Usage", f"{df_test.memory_usage(deep=True).sum() / 1024:.2f} KB")
+            st.dataframe(df_test.head(10), use_container_width=True)
+        
+        from model.preprocessing import load_and_preprocess_data
+        
+        X_test, y_test = load_and_preprocess_data(df_test)
+        y_pred = model.predict(X_test)
+        
+        st.markdown("---")
+        st.markdown("### 📊 Model Performance Results")
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+        
+        # Display metrics in cards
+        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        
+        with metric_col1:
+            st.metric(
+                label="🎯 Accuracy",
+                value=f"{accuracy:.2%}",
+                delta=None
+            )
+        
+        with metric_col2:
+            st.metric(
+                label="🔍 Precision",
+                value=f"{precision:.2%}",
+                delta=None
+            )
+        
+        with metric_col3:
+            st.metric(
+                label="📈 Recall",
+                value=f"{recall:.2%}",
+                delta=None
+            )
+        
+        with metric_col4:
+            st.metric(
+                label="⚖️ F1-Score",
+                value=f"{f1:.2%}",
+                delta=None
+            )
+        
+        st.markdown("---")
+        
+        # Visualization Section
+        viz_col1, viz_col2 = st.columns(2)
+        
+        with viz_col1:
+            st.markdown("#### 🔥 Confusion Matrix")
+            cm = confusion_matrix(y_test, y_pred)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.heatmap(
+                cm,
+                annot=True,
+                fmt="d",
+                cmap="Blues",
+                ax=ax,
+                cbar_kws={'label': 'Count'},
+                square=True,
+                linewidths=1,
+                linecolor='white'
+            )
+            ax.set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
+            ax.set_ylabel('True Label', fontsize=12, fontweight='bold')
+            ax.set_title(f'Confusion Matrix - {model_option}', fontsize=14, fontweight='bold', pad=20)
+            plt.tight_layout()
+            st.pyplot(fig)
+        
+        with viz_col2:
+            st.markdown("#### 📊 Prediction Distribution")
+            
+            # Create prediction distribution chart
+            fig, ax = plt.subplots(figsize=(8, 6))
+            
+            pred_counts = pd.Series(y_pred).value_counts().sort_index()
+            colors = ['#ff6b6b', '#4ecdc4']
+            
+            pred_counts.plot(
+                kind='bar',
+                ax=ax,
+                color=colors,
+                edgecolor='black',
+                linewidth=1.5
+            )
+            
+            ax.set_xlabel('Prediction Class', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Count', fontsize=12, fontweight='bold')
+            ax.set_title('Distribution of Predictions', fontsize=14, fontweight='bold', pad=20)
+            ax.set_xticklabels(['No Subscription', 'Subscription'], rotation=0)
+            
+            # Add value labels on bars
+            for i, v in enumerate(pred_counts):
+                ax.text(i, v + max(pred_counts)*0.01, str(v), 
+                       ha='center', va='bottom', fontweight='bold')
+            
+            plt.tight_layout()
+            st.pyplot(fig)
+        
+        # Classification Report
+        st.markdown("---")
+        st.markdown("#### 📄 Detailed Classification Report")
+        
+        report = classification_report(y_test, y_pred, output_dict=True)
+        report_df = pd.DataFrame(report).transpose()
+        
+        # Style the dataframe
+        styled_df = report_df.style.background_gradient(cmap='Blues', subset=['precision', 'recall', 'f1-score'])\
+                                    .format({'precision': '{:.3f}', 'recall': '{:.3f}', 'f1-score': '{:.3f}', 'support': '{:.0f}'})\
+                                    .set_properties(**{'text-align': 'center'})
+        
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # Download predictions
+        st.markdown("---")
+        st.markdown("### 💾 Export Results")
+        
+        results_df = df_test.copy()
+        results_df['Prediction'] = y_pred
+        results_df['Actual'] = y_test.values if hasattr(y_test, 'values') else y_test
+        
+        csv = results_df.to_csv(index=False)
+        
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            st.download_button(
+                label="📥 Download Predictions CSV",
+                data=csv,
+                file_name=f"predictions_{model_option.lower().replace(' ', '_')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        
+    except Exception as e:
+        st.error(f"❌ Error processing file: {str(e)}")
+        st.info("Please ensure your CSV file has the correct format and delimiter (semicolon ';')")
 
 else:
-    st.info("Please upload the Bank Marketing dataset CSV file to proceed.")
+    # Empty state
+    st.info("👆 Upload a test dataset to see predictions and model performance metrics")
+    
+    # Show example of expected format
+    with st.expander("ℹ️ Expected CSV Format"):
+        st.markdown("""
+        Your CSV file should contain the following columns:
+        - **age**: Client age
+        - **job**: Type of job
+        - **marital**: Marital status
+        - **education**: Education level
+        - **default**: Has credit in default?
+        - **balance**: Account balance
+        - **housing**: Has housing loan?
+        - **loan**: Has personal loan?
+        - **contact**: Contact communication type
+        - **day**: Last contact day of month
+        - **month**: Last contact month
+        - **duration**: Last contact duration
+        - **campaign**: Number of contacts during campaign
+        - **pdays**: Days since last contact
+        - **previous**: Number of previous contacts
+        - **poutcome**: Outcome of previous campaign
+        - **y**: Target variable (yes/no)
+        
+        Use semicolon (;) as delimiter.
+        """)
+
+# Footer
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #666; padding: 2rem 0;'>
+        <p>Built for educational purpose.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
