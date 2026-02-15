@@ -14,22 +14,16 @@ from sklearn.metrics import (
     matthews_corrcoef
 )
 
-# Import all model functions
-from model.logistic_regression import train_and_evaluate_logistic_regression
-from model.decision_tree import train_and_evaluate_decision_tree
-from model.knn import train_and_evaluate_knn
-from model.naive_bayes import train_and_evaluate_naive_bayes
-from model.random_forest import train_and_evaluate_random_forest
-from model.xgboost import train_and_evaluate_xgboost
-
 import pickle
 import os
+
+from model.preprocessing import load_and_preprocess_data
 
 # Function to load pre-trained models
 @st.cache_resource
 def load_model(model_name):
     """Load pre-trained model from disk with caching"""
-    # Map model names to filenames
+    # Mapping model names to filenames
     model_files = {
         'Logistic Regression': 'logistic_regression_model.pkl',
         'Decision Tree': 'decision_tree_model.pkl',
@@ -180,24 +174,15 @@ with col2:
 
 st.markdown("---")
 
-# Model Training Section
-with st.spinner(f'🔄 Training {model_option} model on full dataset...'):
-    df_full = pd.read_csv("data/bank_training_data.csv", sep=';')
-    
-    if model_option == "Logistic Regression":
-        model, _ = train_and_evaluate_logistic_regression(df_full)
-    elif model_option == "Decision Tree":
-        model, _ = train_and_evaluate_decision_tree(df_full)
-    elif model_option == "KNN":
-        model, _ = train_and_evaluate_knn(df_full)
-    elif model_option == "Naive Bayes":
-        model, _ = train_and_evaluate_naive_bayes(df_full)
-    elif model_option == "Random Forest":
-        model, _ = train_and_evaluate_random_forest(df_full)
-    elif model_option == "XGBoost":
-        model, _ = train_and_evaluate_xgboost(df_full)
+# LOAD pre-trained model
+with st.spinner(f'📥 Loading {model_option} model...'):
+    model = load_model(model_option)
 
-st.success(f'✅ {model_option} model trained successfully!')
+if model is None:
+    st.error("Failed to load model. Please check if models are trained.")
+    st.stop()
+
+st.success(f'✅ {model_option} model loaded successfully!')
 
 # Upload and Prediction Section
 st.markdown("### 🔮 Make Predictions")
