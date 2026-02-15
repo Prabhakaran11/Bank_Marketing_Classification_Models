@@ -133,13 +133,13 @@ with st.sidebar:
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.markdown("### 📥 Sample Dataset")
-    st.markdown("Download a sample test dataset to try the prediction functionality.")
+    st.markdown("### 📥 Test Dataset")
+    st.markdown("Download the test dataset to try the prediction functionality.")
 
 with col2:
     with open("data/bank_prediction_data.csv", "rb") as file:
         st.download_button(
-            label="⬇️ Download Sample CSV",
+            label="⬇️ Download Test CSV",
             data=file,
             file_name="bank_test_sample.csv",
             mime="text/csv",
@@ -207,7 +207,6 @@ if uploaded_file is not None:
         try:
             if hasattr(model, "predict_proba"):
                 y_pred_proba = model.predict_proba(X_test)
-                # For binary classification, use the positive class probability
                 if y_pred_proba.shape[1] == 2:
                     auc = roc_auc_score(y_test, y_pred_proba[:, 1])
                 else:
