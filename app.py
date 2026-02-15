@@ -128,7 +128,7 @@ with col1:
     st.markdown("Download a sample test dataset to try the prediction functionality.")
 
 with col2:
-    with open("data/bank.csv", "rb") as file:
+    with open("data/bank_sample.csv", "rb") as file:
         st.download_button(
             label="⬇️ Download Sample CSV",
             data=file,
