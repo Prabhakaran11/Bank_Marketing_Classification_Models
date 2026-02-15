@@ -22,6 +22,37 @@ from model.naive_bayes import train_and_evaluate_naive_bayes
 from model.random_forest import train_and_evaluate_random_forest
 from model.xgboost import train_and_evaluate_xgboost
 
+import pickle
+import os
+
+# Function to load pre-trained models
+@st.cache_resource
+def load_model(model_name):
+    """Load pre-trained model from disk with caching"""
+    # Map model names to filenames
+    model_files = {
+        'Logistic Regression': 'logistic_regression_model.pkl',
+        'Decision Tree': 'decision_tree_model.pkl',
+        'KNN': 'knn_model.pkl',
+        'Naive Bayes': 'naive_bayes_model.pkl',
+        'Random Forest': 'random_forest_model.pkl',
+        'XGBoost': 'xgboost_model.pkl'
+    }
+    
+    filename = f"saved_models/{model_files[model_name]}"
+    
+    try:
+        with open(filename, 'rb') as f:
+            model = pickle.load(f)
+        return model
+    except FileNotFoundError:
+        st.error(f"❌ Model file not found: {filename}")
+        st.error("Please run 'python train_all_models.py' to train and save models.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Error loading model: {str(e)}")
+        return None
+
 # Page configuration
 st.set_page_config(
     page_title="Bank Marketing Classification Dashboard",
