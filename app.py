@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
@@ -29,7 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS
 st.markdown("""
     <style>
     .main-header {
@@ -199,23 +200,24 @@ if uploaded_file is not None:
         
         # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+        precision = precision_score(y_test, y_pred, average='binary', zero_division=0)
+        recall = recall_score(y_test, y_pred, average='binary', zero_division=0)
+        f1 = f1_score(y_test, y_pred, average='binary', zero_division=0)
         
         # Calculate AUC Score
         try:
             if hasattr(model, "predict_proba"):
                 y_pred_proba = model.predict_proba(X_test)
-                if y_pred_proba.shape[1] == 2:
-                    auc = roc_auc_score(y_test, y_pred_proba[:, 1])
-                else:
-                    auc = roc_auc_score(y_test, y_pred_proba, multi_class='ovr', average='weighted')
+                auc = roc_auc_score(y_test, y_pred_proba[:, 1])
             else:
                 auc = None
-        except:
+        except ValueError as e:
+            st.warning(f"⚠️ AUC Score could not be calculated: {str(e)}")
             auc = None
-        
+        except Exception as e:
+            st.error(f"❌ Unexpected error calculating AUC: {str(e)}")
+            auc = None
+
         # Calculate MCC Score
         mcc = matthews_corrcoef(y_test, y_pred)
 
@@ -275,14 +277,16 @@ if uploaded_file is not None:
         
         st.markdown("---")
         
-        # Visualization Section
+    # Visualization Section
+        st.markdown("---")
+
         viz_col1, viz_col2 = st.columns(2)
-        
+
         with viz_col1:
             st.markdown("#### 🔥 Confusion Matrix")
             cm = confusion_matrix(y_test, y_pred)
             
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, ax = plt.subplots(figsize=(6, 5))
             sns.heatmap(
                 cm,
                 annot=True,
@@ -292,40 +296,47 @@ if uploaded_file is not None:
                 cbar_kws={'label': 'Count'},
                 square=True,
                 linewidths=1,
-                linecolor='white'
+                linecolor='white',
+                annot_kws={'size': 14, 'weight': 'bold'}
             )
-            ax.set_xlabel('Predicted Label', fontsize=12, fontweight='bold')
-            ax.set_ylabel('True Label', fontsize=12, fontweight='bold')
-            ax.set_title(f'Confusion Matrix - {model_option}', fontsize=14, fontweight='bold', pad=20)
+            ax.set_xlabel('Predicted Label', fontsize=11, fontweight='bold')
+            ax.set_ylabel('True Label', fontsize=11, fontweight='bold')
+            ax.set_title(f'Confusion Matrix - {model_option}', fontsize=13, fontweight='bold', pad=15)
             plt.tight_layout()
             st.pyplot(fig)
-        
+
         with viz_col2:
             st.markdown("#### 📊 Prediction Distribution")
             
-            # Create prediction distribution chart
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, ax = plt.subplots(figsize=(6, 5))
             
             pred_counts = pd.Series(y_pred).value_counts().sort_index()
             colors = ['#ff6b6b', '#4ecdc4']
+            labels = ['No Subscription', 'Subscription']
             
-            pred_counts.plot(
-                kind='bar',
-                ax=ax,
-                color=colors,
-                edgecolor='black',
-                linewidth=1.5
+            # Donut chart
+            wedges, texts, autotexts = ax.pie(
+                pred_counts,
+                labels=labels,
+                colors=colors,
+                autopct='%1.1f%%',
+                startangle=90,
+                explode=(0, 0.05),
+                textprops={'fontsize': 10, 'fontweight': 'bold'},
+                pctdistance=0.82,
+                wedgeprops=dict(width=0.4, edgecolor='white', linewidth=2)
             )
             
-            ax.set_xlabel('Prediction Class', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Count', fontsize=12, fontweight='bold')
-            ax.set_title('Distribution of Predictions', fontsize=14, fontweight='bold', pad=20)
-            ax.set_xticklabels(['No Subscription', 'Subscription'], rotation=0)
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontsize(10)
+                autotext.set_fontweight('bold')
             
-            # Add value labels on bars
-            for i, v in enumerate(pred_counts):
-                ax.text(i, v + max(pred_counts)*0.01, str(v), 
-                       ha='center', va='bottom', fontweight='bold')
+            # Center text
+            ax.text(0, 0, f'Total\n{sum(pred_counts)}', 
+                    ha='center', va='center', fontsize=12, fontweight='bold')
+            
+            ax.set_title('Distribution of Predictions', fontsize=13, fontweight='bold', pad=15)
             
             plt.tight_layout()
             st.pyplot(fig)
@@ -333,16 +344,35 @@ if uploaded_file is not None:
         # Classification Report
         st.markdown("---")
         st.markdown("#### 📄 Detailed Classification Report")
-        
+
         report = classification_report(y_test, y_pred, output_dict=True)
         report_df = pd.DataFrame(report).transpose()
-        
+
+        # Adding labels to explain what each row means
+        index_labels = {
+            '0': '0 (No Subscription)',
+            '1': '1 (Yes Subscription) ⭐',
+            'accuracy': 'Overall Accuracy',
+            'macro avg': 'Macro Average',
+            'weighted avg': 'Weighted Average'
+        }
+
+        # Apply labels
+        report_df.index = report_df.index.map(lambda x: index_labels.get(str(x), str(x)))
+
+        report_df = report_df.reset_index()
+        report_df = report_df.rename(columns={'index': 'Class'})
+
         # Style the dataframe
         styled_df = report_df.style.background_gradient(cmap='Blues', subset=['precision', 'recall', 'f1-score'])\
-                                    .format({'precision': '{:.3f}', 'recall': '{:.3f}', 'f1-score': '{:.3f}', 'support': '{:.0f}'})\
-                                    .set_properties(**{'text-align': 'center'})
-        
-        st.dataframe(styled_df, use_container_width=True)
+                                .format({'precision': '{:.3f}', 'recall': '{:.3f}', 'f1-score': '{:.3f}', 'support': '{:.0f}'})\
+                                .set_properties(**{'text-align': 'center'})
+
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
+        # Add note below
+        st.caption("⭐ The metrics in the cards above show performance for Class 1 (Yes Subscription) only, as this is our target class.")
+
         
         # Download predictions
         st.markdown("---")

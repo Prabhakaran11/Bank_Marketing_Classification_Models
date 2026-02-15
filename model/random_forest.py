@@ -19,6 +19,10 @@ def train_and_evaluate_random_forest(df):
     # Train Random Forest model
     model = RandomForestClassifier(
         n_estimators=100,
+        max_depth=15,
+        min_samples_split=20,
+        min_samples_leaf=10,
+        class_weight='balanced',
         random_state=42,
         n_jobs=-1
     )
@@ -32,9 +36,9 @@ def train_and_evaluate_random_forest(df):
     metrics = {
         "Accuracy": accuracy_score(y_test, y_pred),
         "AUC": roc_auc_score(y_test, y_proba),
-        "Precision": precision_score(y_test, y_pred),
-        "Recall": recall_score(y_test, y_pred),
-        "F1 Score": f1_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, pos_label=1, zero_division=0),
+        "Recall": recall_score(y_test, y_pred, pos_label=1, zero_division=0),
+        "F1 Score": f1_score(y_test, y_pred, pos_label=1, zero_division=0),
         "MCC": matthews_corrcoef(y_test, y_pred)
     }
 

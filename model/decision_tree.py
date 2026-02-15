@@ -19,7 +19,11 @@ def train_and_evaluate_decision_tree(df):
     # Train Decision Tree model
     model = DecisionTreeClassifier(
         random_state=42,
-        max_depth=None
+        max_depth=10,
+        min_samples_split=20,
+        min_samples_leaf=10,
+        class_weight='balanced',
+        criterion='gini'
     )
     model.fit(X_train, y_train)
 
@@ -31,9 +35,9 @@ def train_and_evaluate_decision_tree(df):
     metrics = {
         "Accuracy": accuracy_score(y_test, y_pred),
         "AUC": roc_auc_score(y_test, y_proba),
-        "Precision": precision_score(y_test, y_pred),
-        "Recall": recall_score(y_test, y_pred),
-        "F1 Score": f1_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, pos_label=1, zero_division=0),
+        "Recall": recall_score(y_test, y_pred, pos_label=1, zero_division=0),
+        "F1 Score": f1_score(y_test, y_pred, pos_label=1, zero_division=0),
         "MCC": matthews_corrcoef(y_test, y_pred)
     }
 
