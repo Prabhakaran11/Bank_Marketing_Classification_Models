@@ -294,8 +294,6 @@ if uploaded_file is not None:
         st.markdown("---")
         
     # Visualization Section
-        st.markdown("---")
-
         viz_col1, viz_col2 = st.columns(2)
 
         with viz_col1:
