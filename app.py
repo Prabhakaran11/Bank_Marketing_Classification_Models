@@ -2,7 +2,16 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (
+    confusion_matrix, 
+    classification_report, 
+    accuracy_score, 
+    precision_score, 
+    recall_score, 
+    f1_score, 
+    roc_auc_score, 
+    matthews_corrcoef
+)
 
 # Import all model functions
 from model.logistic_regression import train_and_evaluate_logistic_regression
@@ -14,7 +23,7 @@ from model.xgboost import train_and_evaluate_xgboost
 
 # Page configuration
 st.set_page_config(
-    page_title="Bank Marketing ML Predictor",
+    page_title="Bank Marketing Classification Dashboard",
     page_icon="🏦",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -65,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header Section
-st.markdown('<h1 class="main-header">🏦 Bank Marketing ML Predictor</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🏦 Bank Marketing Classification – Model Comparison Dashboard</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Train and evaluate machine learning models to predict term deposit subscriptions</p>', unsafe_allow_html=True)
 
 # Sidebar
@@ -77,7 +86,7 @@ with st.sidebar:
                 text-align: center;
                 margin-bottom: 1rem;'>
         <h2 style='color: white; margin: 0;'>🏦 ML Platform</h2>
-        <p style='color: #e3f2fd; margin: 0.5rem 0 0 0;'>Bank Marketing Predictor</p>
+        <p style='color: #e3f2fd; margin: 0.5rem 0 0 0;'>Bank Marketing Classification</p>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("### 🎯 Model Configuration")
@@ -112,7 +121,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📚 About")
     st.markdown("""
-    This application uses machine learning to predict whether a client will subscribe to a term deposit based on marketing campaign data.
+    This app compares multiple ML models to predict term deposit subscription based on client and campaign data.
     
     **Dataset Features:**
     - Demographics
@@ -128,7 +137,7 @@ with col1:
     st.markdown("Download a sample test dataset to try the prediction functionality.")
 
 with col2:
-    with open("data/bank_sample.csv", "rb") as file:
+    with open("data/bank_prediction_data.csv", "rb") as file:
         st.download_button(
             label="⬇️ Download Sample CSV",
             data=file,
@@ -141,7 +150,7 @@ st.markdown("---")
 
 # Model Training Section
 with st.spinner(f'🔄 Training {model_option} model on full dataset...'):
-    df_full = pd.read_csv("data/bank-full.csv", sep=';')
+    df_full = pd.read_csv("data/bank_training_data.csv", sep=';')
     
     if model_option == "Logistic Regression":
         model, _ = train_and_evaluate_logistic_regression(df_full)
@@ -194,8 +203,25 @@ if uploaded_file is not None:
         recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
         f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
         
+        # Calculate AUC Score
+        try:
+            if hasattr(model, "predict_proba"):
+                y_pred_proba = model.predict_proba(X_test)
+                # For binary classification, use the positive class probability
+                if y_pred_proba.shape[1] == 2:
+                    auc = roc_auc_score(y_test, y_pred_proba[:, 1])
+                else:
+                    auc = roc_auc_score(y_test, y_pred_proba, multi_class='ovr', average='weighted')
+            else:
+                auc = None
+        except:
+            auc = None
+        
+        # Calculate MCC Score
+        mcc = matthews_corrcoef(y_test, y_pred)
+
         # Display metrics in cards
-        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        metric_col1, metric_col2, metric_col3, metric_col4, metric_col5, metric_col6 = st.columns(6)
         
         with metric_col1:
             st.metric(
@@ -223,6 +249,29 @@ if uploaded_file is not None:
                 label="⚖️ F1-Score",
                 value=f"{f1:.2%}",
                 delta=None
+            )
+        
+        with metric_col5:
+            if auc is not None:
+                st.metric(
+                    label="📊 AUC Score",
+                    value=f"{auc:.2%}",
+                    delta=None
+                )
+            else:
+                st.metric(
+                    label="📊 AUC Score",
+                    value="N/A",
+                    delta=None,
+                    help="Model does not support probability predictions"
+                )
+        
+        with metric_col6:
+            st.metric(
+                label="🔗 MCC Score",
+                value=f"{mcc:.3f}",
+                delta=None,
+                help="Matthews Correlation Coefficient (-1 to +1)"
             )
         
         st.markdown("---")
@@ -354,7 +403,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666; padding: 2rem 0;'>
-        <p>Built for educational purpose.</p>
+        <p>© 2026 | ML Assignment – Bank Marketing Classification</p>
     </div>
     """,
     unsafe_allow_html=True
